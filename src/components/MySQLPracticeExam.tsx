@@ -2,35 +2,57 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Database, ChevronRight, ChevronLeft, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const [questions, setQuestions] = useState([]);
+interface Option {
+  letter: string;
+  text: string;
+}
 
-useEffect(() => {
-  // 使用 fetch 来读取 JSON 文件
-  fetch('questions.json')
-    .then(response => response.json())  // 解析为 JSON 格式
-    .then(data => setQuestions(data))   // 设置数据到状态
-    .catch(error => console.error('Error loading the questions:', error));
-}, []);
+interface Question {
+  number: string;
+  stem: string;
+  options: Option[];
+  correct_answers: string[];
+}
 
+interface QuestionsData {
+  questions: Question[];
+}
 
-const MySQLPracticeExam = () => {
+const MySQLPracticeExam: React.FC = () => {
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/questions.json')
+      .then(response => response.json())
+      .then((data: QuestionsData) => setQuestions(data.questions))
+      .catch(error => console.error('Error loading the questions:', error));
+  }, []);
 
   const currentQuestion = questions[currentQuestionIndex];
 
   const handleOptionClick = (letter: string) => {
     if (showFeedback) return;
-    setSelectedOption(letter);
+    setSelectedOptions(prev => {
+      if (prev.includes(letter)) {
+        return prev.filter(opt => opt !== letter);
+      } else {
+        return [...prev, letter];
+      }
+    });
   };
 
   const checkAnswer = () => {
-    if (!selectedOption) return;
+    if (selectedOptions.length === 0) return;
     
-    const isAnswerCorrect = currentQuestion?.correct_answers?.includes(selectedOption);
+    const isAnswerCorrect = 
+      selectedOptions.length === currentQuestion?.correct_answers?.length &&
+      selectedOptions.every(option => currentQuestion?.correct_answers?.includes(option));
+    
     setIsCorrect(isAnswerCorrect);
     setShowFeedback(true);
     
@@ -45,14 +67,14 @@ const MySQLPracticeExam = () => {
   const goToNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedOption(null);
+      setSelectedOptions([]);
     }
   };
 
   const goToPrevQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
-      setSelectedOption(null);
+      setSelectedOptions([]);
     }
   };
 
@@ -95,7 +117,7 @@ const MySQLPracticeExam = () => {
                     }`}
                     onClick={() => {
                       setCurrentQuestionIndex(index);
-                      setSelectedOption(null);
+                      setSelectedOptions([]);
                       setIsMobileMenuOpen(false);
                     }}
                   >
@@ -127,9 +149,14 @@ const MySQLPracticeExam = () => {
             </div>
             
             <div className="prose max-w-none mb-6">
-              {currentQuestion?.stem?.split('\n').map((line, i) => (
-                <p key={i} className="mb-2">{line}</p>
-              ))}
+              {currentQuestion?.stem &&
+                (/([+|\-]{2,}|\s{2,})/.test(currentQuestion.stem)
+                  ? <pre className="whitespace-pre-wrap">{currentQuestion.stem}</pre>
+                  : currentQuestion.stem.split('\n').map((line, i) => (
+                      <p key={i} className="mb-2">{line}</p>
+                    ))
+                )
+              }
             </div>
 
             <div className="space-y-3">
@@ -137,13 +164,18 @@ const MySQLPracticeExam = () => {
                 <div
                   key={option.letter}
                   className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                    selectedOption === option.letter
+                    selectedOptions.includes(option.letter)
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-blue-300'
                   }`}
                   onClick={() => handleOptionClick(option.letter)}
                 >
                   <div className="flex items-start">
+                    <div className="w-5 h-5 border-2 rounded mr-3 flex items-center justify-center">
+                      {selectedOptions.includes(option.letter) && (
+                        <Check className="w-3 h-3 text-blue-500" />
+                      )}
+                    </div>
                     <span className="font-medium text-blue-600 mr-3">{option.letter}.</span>
                     <span className="text-gray-700">{option.text}</span>
                   </div>
@@ -185,9 +217,9 @@ const MySQLPracticeExam = () => {
           
           <button
             className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-            onClick={selectedOption ? checkAnswer : goToNextQuestion}
+            onClick={selectedOptions.length > 0 ? checkAnswer : goToNextQuestion}
           >
-            {selectedOption ? 'Check Answer' : 'Skip'}
+            {selectedOptions.length > 0 ? 'Check Answer' : 'Skip'}
           </button>
         </div>
       </div>
@@ -202,4 +234,4 @@ const MySQLPracticeExam = () => {
   );
 };
 
-export default MySQLPracticeExam;
+export default MySQLPracticeExam; 
