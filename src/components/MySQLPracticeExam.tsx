@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Database, ChevronRight, ChevronLeft, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuestionNavigator from './QuestionNavigator';
 
 interface Option {
   letter: string;
@@ -25,13 +26,29 @@ const MySQLPracticeExam: React.FC = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNavigator, setShowNavigator] = useState(false);
+  const [answered, setAnswered] = useState<boolean[]>([]);
 
   useEffect(() => {
     fetch('/questions.json')
       .then(response => response.json())
-      .then((data: QuestionsData) => setQuestions(data.questions))
+      .then((data: QuestionsData) => {
+        setQuestions(data.questions);
+        setAnswered(new Array(data.questions.length).fill(false));
+      })
       .catch(error => console.error('Error loading the questions:', error));
   }, []);
+
+  useEffect(() => {
+    // Mark as answered if any option is selected for this question
+    if (selectedOptions.length > 0) {
+      setAnswered(prev => {
+        const updated = [...prev];
+        updated[currentQuestionIndex] = true;
+        return updated;
+      });
+    }
+  }, [selectedOptions, currentQuestionIndex]);
 
   const currentQuestion = questions[currentQuestionIndex];
 
@@ -87,7 +104,12 @@ const MySQLPracticeExam: React.FC = () => {
             <Database className="mr-2" /> MySQL Practice Exam
           </div>
           <div className="flex items-center">
-            <span className="text-gray-600 mr-2">Question {currentQuestionIndex + 1} of {questions.length}</span>
+            <span
+              className="text-gray-600 mr-2 cursor-pointer hover:underline"
+              onClick={() => setShowNavigator(true)}
+            >
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </span>
             <button 
               className="md:hidden p-2 rounded-md hover:bg-gray-100"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -223,6 +245,20 @@ const MySQLPracticeExam: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {showNavigator && (
+        <QuestionNavigator
+          questionsCount={questions.length}
+          currentIndex={currentQuestionIndex}
+          answered={answered}
+          onSelect={idx => {
+            setCurrentQuestionIndex(idx);
+            setSelectedOptions([]);
+            setShowNavigator(false);
+          }}
+          onClose={() => setShowNavigator(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t bg-white mt-12 py-4">
