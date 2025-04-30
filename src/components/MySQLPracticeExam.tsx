@@ -227,7 +227,7 @@ const MySQLPracticeExam: React.FC = () => {
       {/* Footer */}
       <footer className="border-t bg-white mt-12 py-4">
         <div className="container mx-auto px-4 text-center text-sm text-gray-600">
-          Created by <a href="https://github.com/Zjianru" className="text-blue-600 hover:underline">codez</a> | 页面内容均由 AI 生成，仅供参考
+          Created by <a href="https://github.com/Zjianru" className="text-blue-600 hover:underline">Zjianru</a> | 页面内容均由 AI 生成，仅供参考
         </div>
       </footer>
     </div>
